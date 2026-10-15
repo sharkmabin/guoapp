@@ -1,4 +1,5 @@
 .dart_tool/
+.codegraph/
 .flutter-plugins*
 .pub-cache/
 build/

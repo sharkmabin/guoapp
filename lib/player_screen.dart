@@ -131,6 +131,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   AppOrientationController? _orientationController;
   bool get _pictureInPictureVisible =>
       _pictureInPictureActive || _pictureInPictureRequested;
+  bool get _playbackCanRun =>
+      _foreground ||
+      Platform.isAndroid ||
+      Platform.isWindows ||
+      Platform.isMacOS;
   bool get _canUsePictureInPicture =>
       !_television &&
       defaultTargetPlatform == TargetPlatform.android &&
@@ -245,7 +250,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               _player.state.position < duration - const Duration(seconds: 2)) {
             _queueRecovery();
           } else if (_autoAdvance &&
-              _foreground &&
+              _playbackCanRun &&
               !_panelOpen &&
               _index + 1 < widget.detail.episodes.length) {
             _play(_index + 1, showControlsOnReady: false);
@@ -448,7 +453,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _health.reset();
     if (!visible) _interactions.cancel();
     if (pauseWhenHidden &&
-        !visible &&
+        !_playbackCanRun &&
         (_lifecycleState == AppLifecycleState.paused ||
             _lifecycleState == AppLifecycleState.inactive ||
             _lifecycleState == AppLifecycleState.hidden)) {
@@ -651,7 +656,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void _syncPreload() {
     if (_closed) return;
     if (!_preloadEnabled ||
-        !_foreground ||
+        !_playbackCanRun ||
         widget.localOnly ||
         _plan?.local == true ||
         _loading ||
@@ -749,13 +754,16 @@ class _PlayerScreenState extends State<PlayerScreen>
       return;
     }
     _pendingError = true;
-    if (!_foreground || (_errorTimer?.isActive ?? false)) {
+    if (!_playbackCanRun || (_errorTimer?.isActive ?? false)) {
       return;
     }
     final ticket = _generation;
     final position = _player.state.position;
     _errorTimer = Timer(const Duration(milliseconds: 900), () {
-      if (_closed || ticket != _generation || !_foreground || !_acceptErrors) {
+      if (_closed ||
+          ticket != _generation ||
+          !_playbackCanRun ||
+          !_acceptErrors) {
         return;
       }
       _pendingError = false;
@@ -774,7 +782,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     final current = _plan;
     if (_closed ||
         !_acceptErrors ||
-        !_foreground ||
+        !_playbackCanRun ||
         current == null ||
         _error != null) {
       return;
@@ -1022,7 +1030,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 ? Duration(milliseconds: (position * 1000).round())
                 : null,
           ),
-          play: _foreground && _playIntent,
+          play: _playbackCanRun && _playIntent,
         );
         if (_closed || ticket != _generation) {
           return;
